@@ -153,6 +153,9 @@ class URTDEController:
 
         self.reached_place = False
         self.reached_z_min = False
+        print("-------------------------------------")
+        print("URTDE Controller Initialized...!!")
+        print("-------------------------------------")
 
     def hello(self):
         return "hello"
@@ -177,11 +180,11 @@ class URTDEController:
                 self.home_pose is not None
             ), "Home pose not assigned! Call 'set_home_pose(<joint_angles>)' to enable homing"
             return self.move_to_joint_positions(
-                positions=self.home_pose, delta=False)
+                positions=self.home_pose, delta=True)
 
 
 
-    def move_to_joint_positions(self, positions: np.ndarray, delta: bool = False):
+    def move_to_joint_positions(self, positions: np.ndarray, delta: bool = True):
         """Moves the robot to the specified joint positions.
 
         Args:
@@ -197,7 +200,7 @@ class URTDEController:
         # print("len(list(positions))", len(list(positions)), "len(curr_joints)", len(curr_joints))
         if len(list(positions)) == len(curr_joints):
             max_delta = (np.abs(curr_joints - positions)).max()
-            print("max_delta", max_delta)   
+            # print("max_delta", max_delta)   
             steps = min(int(max_delta / 0.01), 100)
             print("Steps to reach home pose", steps)
         for jnt in np.linspace(curr_joints, positions, steps):
@@ -327,18 +330,17 @@ class URTDEController:
         gripper_action: float = action[-1]
 
         if self.cfg.controller_type == "CARTESIAN_DELTA":
-            pos = self._robot.get_ee_pose()
+            pos = self._robot.get_ee_pose()[:-1]
             ee_pos, ee_ori = np.split(pos, [3])
             delta_pos, delta_ori = np.split(robot_action, [3])
 
             # compute new pos and new quat
             new_pos = ee_pos + delta_pos
             # TODO: this can be made much faster using purpose build methods instead of scipy.
-            # new_rot = (delta_ori * ee_ori).astype(np.float32)
-            # new_rot = ee_ori + delta_ori
-            # new_rot = ee_ori
+            new_rot = (delta_ori * ee_ori).astype(np.float32)
+            new_rot = ee_ori + delta_ori
             
-            new_rot = np.array([3.14, 0.00, 0.002])
+            # new_rot = np.array([3.14, 0.00, 0.002])
 
             # clip
             # new_pos, new_rot = self.ee_config.clip(new_pos, new_rot)
@@ -416,7 +418,7 @@ class URTDEController:
             home = home + noise
             self._robot.set_home_pose(home)
 
-        self._robot.go_home(blocking=False)
+        self.go_home(blocking=False)
 
         # assert not self._robot.is_running_policy()
         # self._robot.start_cartesian_impedance()
@@ -429,7 +431,7 @@ class URTDEController:
         Returns the robot state dictionary.
         For VR support MUST include [ee_pos, ee_quat]
         """
-        ee_pos, ee_quat = np.split(self._robot.get_ee_pose(), [3])
+        ee_pos, ee_quat = np.split(self._robot.get_ee_pose()[:-1], [3])
         gripper_state = self._gripper.get_current_position()
         joint_states = self._robot.get_joint_state()
         # gripper_pos = 1 - (gripper_state / self._max_gripper_width) # 0 is open and 1 is closed
@@ -491,7 +493,6 @@ if __name__ == "__main__":
     # robot = controller._robot
 
     # Print the current ee position
-    # print(robot.get_ee_pose())
 
     # Go to a given ee position
     # # Reset Back

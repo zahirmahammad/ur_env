@@ -42,8 +42,12 @@ class ZMQServerRobot:
                 result: Any
                 if method == "num_dofs":
                     result = self._robot.num_dofs()
+                elif method == "_get_gripper_pos":
+                    result = self._robot._get_gripper_pos()
                 elif method == "get_joint_state":
                     result = self._robot.get_joint_state()
+                elif method == "get_ee_pose":
+                    result = self._robot.get_ee_pose()
                 elif method == "command_joint_state":
                     result = self._robot.command_joint_state(**args)
                 elif method == "get_observations":
@@ -87,6 +91,22 @@ class ZMQClientRobot(Robot):
         result = pickle.loads(self._socket.recv())
         return result
 
+
+
+    def _get_gripper_pos(self) -> np.ndarray:
+        """Get the gripper pos of the leader robot.
+
+        Returns:
+            T: The gripper pos of the leader robot.
+        """
+        request = {"method": "_get_gripper_pos"}
+        send_message = pickle.dumps(request)
+        self._socket.send(send_message)
+        result = pickle.loads(self._socket.recv())
+        return result
+
+
+
     def get_joint_state(self) -> np.ndarray:
         """Get the current state of the leader robot.
 
@@ -98,6 +118,22 @@ class ZMQClientRobot(Robot):
         self._socket.send(send_message)
         result = pickle.loads(self._socket.recv())
         return result
+
+
+
+    def get_ee_pose(self) -> np.ndarray:
+        """Get the ee_pos of the leader robot.
+
+        Returns:
+            T: The ee_pos of the leader robot.
+        """
+        request = {"method": "get_ee_pose"}
+        send_message = pickle.dumps(request)
+        self._socket.send(send_message)
+        result = pickle.loads(self._socket.recv())
+        return result
+    
+
 
     def command_joint_state(self, joint_state: np.ndarray) -> None:
         """Command the leader robot to the given state.
@@ -129,14 +165,14 @@ class ZMQClientRobot(Robot):
         result = pickle.loads(self._socket.recv())
         return result
     
-    def get_observations(self) -> Dict[str, np.ndarray]:
-        """Get the current observations of the leader robot.
+    # def get_observations(self) -> Dict[str, np.ndarray]:
+    #     """Get the current observations of the leader robot.
 
-        Returns:
-            Dict[str, np.ndarray]: The current observations of the leader robot.
-        """
-        request = {"method": "get_observations"}
-        send_message = pickle.dumps(request)
-        self._socket.send(send_message)
-        result = pickle.loads(self._socket.recv())
-        return result
+    #     Returns:
+    #         Dict[str, np.ndarray]: The current observations of the leader robot.
+    #     """
+    #     request = {"method": "get_observations"}
+    #     send_message = pickle.dumps(request)
+    #     self._socket.send(send_message)
+    #     result = pickle.loads(self._socket.recv())
+    #     return result

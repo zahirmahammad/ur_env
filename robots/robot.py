@@ -46,18 +46,18 @@ class Robot(Protocol):
         """
         raise NotImplementedError
     
-    @abstractmethod
-    def get_observations(self) -> Dict[str, np.ndarray]:
-        """Get the current observations of the robot.
+    # @abstractmethod
+    # def get_observations(self) -> Dict[str, np.ndarray]:
+    #     """Get the current observations of the robot.
 
-        This is to extract all the information that is available from the robot,
-        such as joint positions, joint velocities, etc. This may also include
-        information from additional sensors, such as cameras, force sensors, etc.
+    #     This is to extract all the information that is available from the robot,
+    #     such as joint positions, joint velocities, etc. This may also include
+    #     information from additional sensors, such as cameras, force sensors, etc.
 
-        Returns:
-            Dict[str, np.ndarray]: A dictionary of observations.
-        """
-        raise NotImplementedError
+    #     Returns:
+    #         Dict[str, np.ndarray]: A dictionary of observations.
+    #     """
+    #     raise NotImplementedError
 
 
 class PrintRobot(Robot):
