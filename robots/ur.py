@@ -52,56 +52,6 @@ class URRobot(Robot):
         return 6
 
      
-    # def move_to_joint_positions(self, positions: np.ndarray, delta: bool = False):
-    #     """Moves the robot to the specified joint positions.
-
-    #     Args:
-    #         positions (torch.Tensor): The joint positions to move the robot to.
-    #         delta (bool, optional): Whether the positions are relative to the current positions. Defaults to False.
-
-    #     Returns:
-    #         bool: True if the robot successfully moved to the specified positions, False otherwise.
-    #     """
-    #     curr_joints = self.get_observations()["joint_positions"]
-    #     if len(list(positions)) == len(curr_joints):
-    #         max_delta = (np.abs(curr_joints - positions)).max()
-    #         print("max_delta", max_delta)   
-    #         steps = min(int(max_delta / 0.01), 100)
-    #     for jnt in np.linspace(curr_joints, positions, steps):
-    #         self.step(jnt)
-    #     return True
-    
-    # def step(self, joints: np.ndarray) :
-    #     """Step the environment forward.
-
-    #     Args:
-    #         joints: joint angles command to step the environment with.
-
-    #     Returns:
-    #         obs: observation from the environment.
-    #     """
-    #     assert len(joints) == (
-    #         self.num_dofs()
-    #     ), f"input:{len(joints)}, robot:{self.num_dofs()}"
-    #     assert self.num_dofs() == len(joints)
-    #     # self.command_eef_pose(joints)
-    #     self.command_joint_state(joints)
-    #     # self._rate.sleep()
-    #     return self.get_observations()
-    
-    # def update_desired_ee_pose(self, pose: np.ndarray) :
-        # """Step the environment forward.
-
-        # Args:
-        #     pose: eefpose and rot angles command to step the environment with.
-
-        # Returns:
-        #     obs: observation from the environment.
-        # """
-        # self.command_eef_pose(pose)
-        # # self._rate.sleep()
-        # return self.get_observations()
-    
     def _get_gripper_pos(self) -> float:
         import time
 
@@ -172,7 +122,7 @@ class URRobot(Robot):
         Args:
             eef_pose (np.ndarray): The eef_pose to command the leader robot to.
         """
-        eef_pos_ = eef_pos[:-1].tolist()
+        # eef_pos_ = eef_pos[:-1].tolist()
         velocity = 0.1
         acceleration = 0.1
         # dt = 1.0 / 500  # 2ms
@@ -184,7 +134,7 @@ class URRobot(Robot):
 
         print("Entered command_eef_pose")
         try:
-            self.robot.servoL(eef_pos_, velocity, acceleration, dt, lookahead_time, gain)
+            self.robot.servoL(eef_pos, velocity, acceleration, dt, lookahead_time, gain)
             # self.robot.moveL(eef_pos_, a=0.25, v=0.25)
             if self._use_gripper:
                 gripper_pos = eef_pos[-1] * 255

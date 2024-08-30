@@ -55,7 +55,7 @@ class ActionSpace:
 @dataclass
 class URTDEControllerConfig:
     task: str = "lift"
-    # robot_ip should be local because this runs on the nuc that connects to the robot
+
     # robot_ip_address: str = "localhost"
     controller_type: str = "CARTESIAN_DELTA"
     max_delta: float = 0.06
@@ -89,22 +89,17 @@ class URTDEController:
     All parameters should be python native for easy integration with 0rpc
     """
 
-    # # Define the bounds for the Franka Robot
-    JOINT_LOW = np.array(
-        [-2.6172, -1.832, -1.832, -1.832, 1.046, 1.046, 0], dtype=np.float32
-    )
-    JOINT_HIGH = np.array(
-        [-0.5228, -1.308, -1.308, -1.308, 2.094, 2.094, 1], dtype=np.float32
-    )
-
     def __init__(self, cfg: URTDEControllerConfig, task) -> None:
         print("URTDE Controller Initialized...")
-
+    
         self.cfg = cfg
         assert self.cfg.controller_type in {
             "CARTESIAN_DELTA",
             "CARTESIAN_IMPEDANCE",
         }
+
+        self.use_gripper = False
+
 
         if task == "lift":
             self.ee_config = LiftEEConfig()
@@ -127,11 +122,11 @@ class URTDEController:
         else:
             assert URTDE_IMPORTED, "Attempted to load robot without URTDE package."
             robot_client = ZMQClientRobot(port=cfg.robot_port, host=cfg.hostname)
-            # self._robot = RobotEnv(robot_client, control_rate_hz=cfg.hz, camera_dict=cfg.camera_clients)
             self._robot = robot_client
-            self._gripper = RobotiqGripper()
-            self._gripper.connect(hostname=cfg.robot_ip, port=63352)
-            print("gripper connected")
+            if self.use_gripper:
+                self._gripper = RobotiqGripper()
+                self._gripper.connect(hostname=cfg.robot_ip, port=63352)
+                print("gripper connected")
 
 
         print("Setting Home Position..")
@@ -143,16 +138,27 @@ class URTDEController:
         ee_pos = self._robot.get_ee_pose()
         print("current ee pos:", ee_pos)
 
-        if hasattr(self._gripper, "_max_position") :
-            # Should grab this from robotiq2f
-            self._max_gripper_width = self._gripper._max_position
-        else:
-            self._max_gripper_width = 255  # default, from Robotiq Value
+        if self.use_gripper:
+            if hasattr(self._gripper, "_max_position") :
+                # Should grab this from robotiq2f
+                self._max_gripper_width = self._gripper._max_position
+            else:
+                self._max_gripper_width = 255  # default, from Robotiq Value
 
         self.desired_gripper_qpos = 0
 
         self.reached_place = False
         self.reached_z_min = False
+
+        ## --- Robot Workspace ---
+        self.x_min, self.x_max = []
+        self.y_min, self.y_max = []
+        self.z_min, self.z_max = [-0.015, 0.5]
+
+        self.r_min, self.r_max = []
+        self.p_min, self.p_max = []
+        self.y_min, self.y_max = []
+
         print("-------------------------------------")
         print("URTDE Controller Initialized...!!")
         print("-------------------------------------")
@@ -161,17 +167,7 @@ class URTDEController:
         return "hello"
 
 
-    # def get_observations(self) -> Dict[str, np.ndarray]:
-    #     joints = self._robot.get_joint_state()
-    #     pos_quat = self._robot.get_ee_pose()
-    #     gripper_pos = np.array([joints[-1]])
-    #     return {
-    #         "joint_positions": joints,
-    #         "joint_velocities": joints,
-    #         "ee_pos_quat": pos_quat,
-    #         "gripper_position": gripper_pos,
-    #     }
-    
+   
 
     def go_home(self, blocking=True) -> None:
         """Calls move_to_joint_positions to the current home positions."""
@@ -219,25 +215,16 @@ class URTDEController:
         Returns:
             bool: True if the robot successfully moved to the specified positions, False otherwise.
         """
-        # print("move_to_eef_positions")
-        # curr_pose = self._robot.get_observations()["ee_pos_quat"]
-        # gripper_pos = self._robot.get_observations()["gripper_position"]
 
         curr_pose = self._robot.get_ee_pose()
-        # print("curr_joints", curr_joints)
-        # print("len(list(positions))", list(positions), "len(curr_joints)", curr_pose)
-        # print("len(reset_pose)", len(positions), "len(curr_pose)", len(curr_pose))
         assert len(positions) == len(curr_pose)
         if len(positions) == len(curr_pose):
-            rpy_delta = np.abs(curr_pose[3:6] - positions[3:6])   
+            rpy_delta = np.abs(curr_pose[3:6] - positions[3:6])
+            # ----- Extra Safety Check for RPY ----- # 
             for angle in rpy_delta:
                 if abs(angle) > 0.75:
                     print(f"Angle: {angle}")
                     print(f"RPY input: {positions[3:6]}, RPY delta: {rpy_delta})")
-
-                    #### -- Fail Safe Disabled - temporarily --
-                    # print("[Angle difference is too large] >/>/>/>/>/>/>/>/... Inverting Orientation")
-                    # positions[3:6] = curr_pose[3:6]
                     raise ValueError("Angle difference is too large")
                 
             max_delta = (np.abs(curr_pose - np.array(positions))).max()
@@ -253,24 +240,6 @@ class URTDEController:
                 self._robot.command_eef_pose(positions)
 
         return True
-
-    # def step(self, joints: np.ndarray) :
-    #     """Step the environment forward.
-
-    #     Args:
-    #         joints: joint angles command to step the environment with.
-
-    #     Returns:
-    #         obs: observation from the environment.
-    #     """
-    #     assert len(joints) == (
-    #         self.num_dofs()
-    #     ), f"input:{len(joints)}, robot:{self.num_dofs()}"
-    #     assert self.num_dofs() == len(joints)
-    #     # self.command_eef_pose(joints)
-    #     self.command_joint_state(joints)
-    #     # self._rate.sleep()
-    #     return self.get_observations()
 
 
     def get_action_space(self) -> tuple[list[float], list[float]]:
@@ -295,11 +264,6 @@ class URTDEController:
 
         self.desired_gripper_qpos = gripper_action
 
-        # self._gripper.move(
-        #     position=width,
-        #     speed=0.1,
-        #     force=0.01,
-        # )
 
     def update(self, action: list[float]) -> None:
         """
@@ -321,13 +285,13 @@ class URTDEController:
         else:
             return
 
-        # # Do not execute if elbow angle is almost horizontal
-        # if self.get_observations()["joint_positions"][1] < -2.7:
-        #     return
+        if self.use_gripper:
+            robot_action: np.ndarray = np.array(action[:-1])
+            gripper_action: float = action[-1]
+        else:
+            robot_action: np.ndarray = np.array(action)
+            # gripper_action: float = 0
 
-        
-        robot_action: np.ndarray = np.array(action[:-1])
-        gripper_action: float = action[-1]
 
         if self.cfg.controller_type == "CARTESIAN_DELTA":
             pos = self._robot.get_ee_pose()[:-1]
@@ -336,75 +300,50 @@ class URTDEController:
 
             # compute new pos and new quat
             new_pos = ee_pos + delta_pos
-            # TODO: this can be made much faster using purpose build methods instead of scipy.
-            new_rot = (delta_ori * ee_ori).astype(np.float32)
             new_rot = ee_ori + delta_ori
             
-            # new_rot = np.array([3.14, 0.00, 0.002])
+            if self.use_gripper:
+                end_eff_pos = np.concatenate((new_pos, new_rot, [gripper_action]))
+            else:
+                end_eff_pos = np.concatenate((new_pos, new_rot))
 
-            # clip
-            # new_pos, new_rot = self.ee_config.clip(new_pos, new_rot)
-            end_eff_pos = np.concatenate((new_pos, new_rot, [gripper_action]))
+            # --- overwrite if the z exceeds ------ #
+            if end_eff_pos[0] <= -0.5:
+                end_eff_pos[0] = -0.5
+            if end_eff_pos[1] >= 0.5:
+                end_eff_pos[1] = 0.5
+            if end_eff_pos[2] <= self.z_min: 
+                end_eff_pos[2] = self.z_min
 
-            # Check if in good range
-            # in_good_range = self.ee_config.ee_in_good_range(end_eff_pos[:3], end_eff_pos[3:6])
-            # if in_good_range:
-
-            # --- skip if the z is touching table ------ #
-
-            # ## ----- This temporrary -> put this back in predication and rl_hardware code ----- ##
-            z_min = -0.015
-            # z_min = 0.008
-            # z_max=0.14
-            # if end_eff_pos[2] <= z_min and self.reached_z_min == False:
-            if end_eff_pos[2] <= z_min: 
-            #     # end_eff_pos[0] = -5.30370915e-02
-            #     # end_eff_pos[1] = -2.90102685e-01
-            #     # end_eff_pos[1] = end_eff_pos[1] - 0.002
-                end_eff_pos[2] = z_min
-            #     # end_eff_pos[2] = 0.005
-            #     # self._robot.move_to_eef_positions(end_eff_pos, delta=False)
-            #     self.reached_z_min = True
             
-            # if self.reached_z_min:
-            #     end_eff_pos[-1] = 0.8
-            # # add condition, if gripper pose is 0.8 and the z is greater than z_max, then z = z_max
-
-            # # if self.reached_place:
-            # #     end_eff_pos[-1] = gripper_action
-
-
-
-            # if end_eff_pos[-1] >= 0.5 and end_eff_pos[2] >= 0.135 and self.reached_place == False:
-            #     # end_eff_pos[2] = z_max
-            #     end_eff_pos[0] = -0.21
-            #     end_eff_pos[1] = -0.35
-            #     self._robot.move_to_eef_positions(end_eff_pos, delta=False)
-            #     end_eff_pos[-1] = gripper_action
-            #     # end_eff_pos[-1] = 0.5
-            #     self.reached_place=True
+            # --- Raise error if rpy absolute is more than threshold --- #
+            r, p, y = end_eff_pos[3:6]
+            if abs(r) > 0.75:
+                raise ValueError("Roll angle -- Out of bound")
+            if abs(p) > 0.75:
+                raise ValueError("Pitch angle -- Out of bound")
+            if abs(y) > 0.75:
+                raise ValueError("Yaw angle -- Out of bound")
 
 
-
-            # print("Action: ", end_eff_pos)
 
             print(f"Abs Pose: {end_eff_pos}")
 
             self.move_to_eef_positions(end_eff_pos, delta=True)
-            self.update_gripper(end_eff_pos[-1], blocking=False)
+            if self.use_gripper:
+                self.update_gripper(gripper_action, blocking=False)
             # else:
                 # print("Action Skipped due to out of range")
         else:
             raise ValueError("Invalid Controller type provided")
 
-        # Update the gripper - Already included in move_to_eef_positions
-        # self.update_gripper(gripper_action, blocking=False)
 
 
     def reset(self, randomize: bool = False) -> None:
         print("reset env")
 
-        self.update_gripper(0)  # open the gripper
+        if self.use_gripper:
+            self.update_gripper(0)  # open the gripper
 
         # self.ee_config.reset(self, robot=self._robot)
 
@@ -420,11 +359,9 @@ class URTDEController:
 
         self.go_home(blocking=False)
 
-        # assert not self._robot.is_running_policy()
-        # self._robot.start_cartesian_impedance()
-        self.reached_place=False
-        self.reached_z_min = False
-        time.sleep(1)
+        # self.reached_place=False
+        # self.reached_z_min = False
+        # time.sleep(1)
 
     def get_state(self) -> dict[str, list[float]]:
         """
@@ -432,10 +369,14 @@ class URTDEController:
         For VR support MUST include [ee_pos, ee_quat]
         """
         ee_pos, ee_quat = np.split(self._robot.get_ee_pose()[:-1], [3])
-        gripper_state = self._gripper.get_current_position()
+        if self.use_gripper:
+            gripper_state = self._gripper.get_current_position()
+            # gripper_pos = 1 - (gripper_state / self._max_gripper_width) # 0 is open and 1 is closed
+            gripper_pos = (gripper_state / self._max_gripper_width) # 0 is open and 1 is closed
+        else:
+            gripper_state = None
+            gripper_pos = None
         joint_states = self._robot.get_joint_state()
-        # gripper_pos = 1 - (gripper_state / self._max_gripper_width) # 0 is open and 1 is closed
-        gripper_pos = (gripper_state / self._max_gripper_width) # 0 is open and 1 is closed
 
         state = {
             "robot0_eef_pos": list(ee_pos),
@@ -490,33 +431,10 @@ if __name__ == "__main__":
 
     time.sleep(3)
 
-    # robot = controller._robot
 
-    # Print the current ee position
-
-    # Go to a given ee position
-    # # Reset Back
-    # end_eff_pos_data = np.array([-5.30370915e-02, -2.90102685e-01,  5.24580323e-03,  3.14000000e+00,0.00000000e+00,  2.00000000e-03, 0.0])
-
-    # print("Moving..")
-    # robot.move_to_eef_positions(end_eff_pos_data, delta=False)
-
-    # time.sleep(3)
-
+    # # -------- Update the gripper -----------
     # controller.update_gripper(0.5)
-
     # time.sleep(3)
 
+    # # --------- Reset the robot ------------
     # controller.reset(randomize=False)
-
-    # # Execute the actions from hdf5
-    # import h5py
-
-    # with h5py.File("release/data/real_robot/data_processed_spaced.hdf5", "r") as f:
-    #     # initial_pose = f["data"]['demo_1']['states'][0]
-    #     actions = f["data"]["demo_0"]["actions"][:]
-    
-    # print("Executing actions...")
-    # for action in actions:
-    #     controller.update(action)
-    #     time.sleep(0.5)

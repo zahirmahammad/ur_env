@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: ur_env
+Version: 0.0.1
+Summary: Hardware Env for UR Robots
+Home-page: 
+Author: Zahir Mahammad
+Author-email: zahirmd@umd.edu
+License: MIT
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: numpy
+
+## Installation
+```
+pip install -r requirements.txt
+pip3 install torch torchvision torchaudio
+```

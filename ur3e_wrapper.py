@@ -342,7 +342,7 @@ def test():
 
 
     # test an action
-    for i in range(6):
+    for _ in range(6):
         action = torch.tensor([0.0, 0.0, 0.00, 0.03, 0.03, 0.03, 0.0])
         obs, reward, terminal, success, _ = env.step(action)
         import time
