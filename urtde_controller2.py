@@ -308,21 +308,26 @@ class URTDEController:
                 end_eff_pos = np.concatenate((new_pos, new_rot))
 
             # --- overwrite if the z exceeds ------ #
-            if end_eff_pos[0] <= -0.5:
-                end_eff_pos[0] = -0.5
-            if end_eff_pos[1] >= 0.5:
-                end_eff_pos[1] = 0.5
-            if end_eff_pos[2] <= self.z_min: 
+            if end_eff_pos[0] < self.x_min:
+                end_eff_pos[0] = self.x_min
+            if end_eff_pos[1] < self.y_min:
+                end_eff_pos[1] = self.y_min
+            if end_eff_pos[2] < self.z_min: 
                 end_eff_pos[2] = self.z_min
-
+            if end_eff_pos[0] > self.x_max:
+                end_eff_pos[0] = self.x_max
+            if end_eff_pos[1] > self.y_max:
+                end_eff_pos[1] = self.y_max
+            if end_eff_pos[2] > self.z_max:
+                end_eff_pos[2] = self.z_max
             
             # --- Raise error if rpy absolute is more than threshold --- #
             r, p, y = end_eff_pos[3:6]
-            if abs(r) > 0.75:
+            if r > self.r_max or r < self.r_min:
                 raise ValueError("Roll angle -- Out of bound")
-            if abs(p) > 0.75:
+            if p > self.p_max or p < self.p_min:
                 raise ValueError("Pitch angle -- Out of bound")
-            if abs(y) > 0.75:
+            if y > self.y_max or y < self.y_min:
                 raise ValueError("Yaw angle -- Out of bound")
 
 
