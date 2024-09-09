@@ -122,7 +122,9 @@ class URRobot(Robot):
         Args:
             eef_pose (np.ndarray): The eef_pose to command the leader robot to.
         """
-        # eef_pos_ = eef_pos[:-1].tolist()
+        if self._use_gripper:
+            gripper_qpos = eef_pos[-1] * 255
+            eef_pos = eef_pos[:-1].tolist()
         velocity = 0.1
         acceleration = 0.1
         # dt = 1.0 / 500  # 2ms
@@ -135,10 +137,11 @@ class URRobot(Robot):
         print("Entered command_eef_pose")
         try:
             self.robot.servoL(eef_pos, velocity, acceleration, dt, lookahead_time, gain)
+            print(f"MoveL: {eef_pos}")
             # self.robot.moveL(eef_pos_, a=0.25, v=0.25)
             if self._use_gripper:
-                gripper_pos = eef_pos[-1] * 255
-                self.gripper.move(gripper_pos, 255, 10)
+                # gripper_pos = eef_pos[-1] * 255
+                self.gripper.move(gripper_qpos, 255, 10)
         except Exception as e:
             print(f"Error in command_eef_pose: {e}")
         self.robot.waitPeriod(t_start)

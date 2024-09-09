@@ -63,7 +63,7 @@ class URTDEControllerConfig:
 
     ## --------- Newly Added ----------- ##
     agent: str = "ur"
-    hostname: str = "10.104.56.158"
+    hostname: str = "10.104.59.112"
     # hostname: str = "192.168.77.243"
     robot_port: int = 50003  # for trajectory
     robot_ip: str = "192.168.77.21" 
@@ -98,7 +98,7 @@ class URTDEController:
             "CARTESIAN_IMPEDANCE",
         }
 
-        self.use_gripper = False
+        self.use_gripper = True
 
 
         if task == "lift":
@@ -151,13 +151,13 @@ class URTDEController:
         self.reached_z_min = False
 
         ## --- Robot Workspace ---
-        self.x_min, self.x_max = []
-        self.y_min, self.y_max = []
-        self.z_min, self.z_max = [-0.015, 0.5]
+        self.x_min, self.x_max = [-0.34, 0.32]
+        self.y_min, self.y_max = [-0.453, -0.132]
+        self.z_min, self.z_max = [-0.016, 0.267]    # Got by testing
 
-        self.r_min, self.r_max = []
-        self.p_min, self.p_max = []
-        self.y_min, self.y_max = []
+        self.r_min, self.r_max = [2.477, 3.779]
+        self.p_min, self.p_max = [-3.14, 3.14]
+        self.zy_min, self.zy_max = [-1.219, 0.919]
 
         print("-------------------------------------")
         print("URTDE Controller Initialized...!!")
@@ -244,7 +244,7 @@ class URTDEController:
 
     def get_action_space(self) -> tuple[list[float], list[float]]:
         if self.cfg.controller_type == "CARTESIAN_DELTA":
-            high = [self.cfg.max_delta] * 3 + [self.cfg.max_delta * 4] * 3
+            high = [self.cfg.max_delta] * 3 + [self.cfg.max_delta * 3] * 3
             low = [-x for x in high]
         elif self.cfg.controller_type == "CARTESIAN_IMPEDANCE":
             low = self.ee_config.ee_range_low
@@ -283,7 +283,7 @@ class URTDEController:
         if self.action_space.assert_in_range(action):
             pass
         else:
-            return
+            raise ValueError("Action out of range")
 
         if self.use_gripper:
             robot_action: np.ndarray = np.array(action[:-1])
@@ -301,7 +301,7 @@ class URTDEController:
             # compute new pos and new quat
             new_pos = ee_pos + delta_pos
             new_rot = ee_ori + delta_ori
-            
+
             if self.use_gripper:
                 end_eff_pos = np.concatenate((new_pos, new_rot, [gripper_action]))
             else:
@@ -314,6 +314,7 @@ class URTDEController:
                 end_eff_pos[1] = self.y_min
             if end_eff_pos[2] < self.z_min: 
                 end_eff_pos[2] = self.z_min
+                
             if end_eff_pos[0] > self.x_max:
                 end_eff_pos[0] = self.x_max
             if end_eff_pos[1] > self.y_max:
@@ -322,13 +323,13 @@ class URTDEController:
                 end_eff_pos[2] = self.z_max
             
             # --- Raise error if rpy absolute is more than threshold --- #
-            r, p, y = end_eff_pos[3:6]
-            if r > self.r_max or r < self.r_min:
-                raise ValueError("Roll angle -- Out of bound")
-            if p > self.p_max or p < self.p_min:
-                raise ValueError("Pitch angle -- Out of bound")
-            if y > self.y_max or y < self.y_min:
-                raise ValueError("Yaw angle -- Out of bound")
+            # r, p, y = end_eff_pos[3:6]
+            # if r > self.r_max or r < self.r_min:
+            #     raise ValueError("Roll angle -- Out of bound")
+            # if p > self.p_max or p < self.p_min:
+            #     raise ValueError("Pitch angle -- Out of bound")
+            # if y > self.y_max or y < self.y_min:
+            #     raise ValueError("Yaw angle -- Out of bound")
 
 
 
@@ -406,7 +407,7 @@ import glob
 @dataclass
 class Args:
     agent: str = "ur"
-    hostname: str = "10.104.56.158"
+    hostname: str = "10.104.59.112"
     # hostname: str = "192.168.77.243"
     robot_port: int = 50003  # for trajectory
     robot_ip: str = "192.168.77.21" 

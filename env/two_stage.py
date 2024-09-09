@@ -19,7 +19,7 @@ class TwoStageEEConfig:
                 -1.57,  # 3rd joint, horizontal,
                 -1.57,
                 1.57,
-                3.14,  # 6th, smaller -> inward
+                1.57,  # 6th, smaller -> inward
                 0.0,  # np.pi * 0.5,  # control the rotation of the gripper
             ],
             dtype=np.float32,

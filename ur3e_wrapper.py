@@ -340,12 +340,12 @@ def test():
         print(k, v.size())
 
 
+    import time
 
     # test an action
-    for _ in range(6):
-        action = torch.tensor([0.0, 0.0, 0.00, 0.03, 0.03, 0.03, 0.0])
+    for _ in range(19):
+        action = torch.tensor([-0.03, 0.0, 0.00, 0.0, 0.00, 0.0, 1.0])
         obs, reward, terminal, success, _ = env.step(action)
-        import time
         time.sleep(1)
 
 
