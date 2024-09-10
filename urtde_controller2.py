@@ -176,11 +176,11 @@ class URTDEController:
                 self.home_pose is not None
             ), "Home pose not assigned! Call 'set_home_pose(<joint_angles>)' to enable homing"
             return self.move_to_joint_positions(
-                positions=self.home_pose, delta=True)
+                positions=self.home_pose, delta=False)
 
 
 
-    def move_to_joint_positions(self, positions: np.ndarray, delta: bool = True):
+    def move_to_joint_positions(self, positions: np.ndarray, delta: bool = False):
         """Moves the robot to the specified joint positions.
 
         Args:
@@ -199,10 +199,15 @@ class URTDEController:
             # print("max_delta", max_delta)   
             steps = min(int(max_delta / 0.01), 100)
             print("Steps to reach home pose", steps)
-        for jnt in np.linspace(curr_joints, positions, steps):
-            # print("Commanding joint state")
-            self._robot.command_joint_state(jnt)
-            print(self._robot.get_ee_pose())
+
+        if not delta:
+            for jnt in np.linspace(curr_joints, positions, steps):
+                # print("Commanding joint state")
+                self._robot.command_joint_state(jnt)
+                print(self._robot.get_ee_pose())
+        elif delta:
+            self._robot.command_joint_state(positions)
+
         return True
 
     def move_to_eef_positions(self, positions: np.ndarray, delta: bool = False):
@@ -342,6 +347,45 @@ class URTDEController:
                 # print("Action Skipped due to out of range")
         else:
             raise ValueError("Invalid Controller type provided")
+
+
+
+    def update_joint(self, action) -> None:
+        """
+        Updates the robot controller with the action
+        """
+        if self.use_gripper:
+            assert len(action) == 7, f"wrong action dim: {len(action)}"
+        else:
+            assert len(action) == 6, f"wrong action dim: {len(action)}"
+        
+
+        # Check if the actions are in range
+        joints_min = [-2.355, -2.355, -2.355, -2.355, -3.14, -3.14, 0]
+        joints_max = [-0.785, -0.785, -0.785, -0.785, 3.14, 3.14, 0]
+
+        # Check if the action is in range and print which joint is out of range
+        if np.any(action < joints_min) or np.any(action > joints_max):
+            print(f"Joint angles: {action}")
+            raise ValueError("Joint angles out of range")
+
+
+        # Get the change in joint angles
+        curr_joints = self._robot.get_joint_state()
+        assert(len(curr_joints) == len(action)), "Action and current joint angles are not same"
+
+        delta = curr_joints - action
+        #check if the delta is not more than 0.5 and print which joint is out of range
+        if np.abs(delta).max() > 0.5:
+            print(f"Delta: {delta}")
+            print(f"Joint angles: {action}")
+            raise ValueError("Joint angles difference is too large")
+        
+        self.move_to_joint_positions(action, delta=True)
+        print("Joint angles updated . . . ")
+
+
+
 
 
 

@@ -229,11 +229,11 @@ class UR3eEnv:
     def get_reward_terminal(self):
         if self.cfg.task == "lift":
             props, in_good_range = self.controller.get_state()
-            print("checking lift reward")
+            # print("checking lift reward")
             reward: float = self.task.reward(props)
         elif self.cfg.task == "two_stage":
             props, in_good_range = self.controller.get_state()
-            print("checking two_stage reward")
+            # print("checking two_stage reward")
             reward: float = self.task.reward(props)
         elif self.cfg.task == "drawer":
             _, in_good_range = self.controller.get_state()
@@ -275,6 +275,18 @@ class UR3eEnv:
         self.time_step += 1
         return
 
+    def apply_joint_action(self, action):
+        if isinstance(action, np.ndarray):
+            self.controller.update_joint(action)
+        else:
+            self.controller.update_joint(action.numpy())
+        self.time_step += 1
+        return
+
+
+
+
+
     # ============= gym style api for compatibility with data collection ============= #
     def reset(self) -> tuple[dict[str, torch.Tensor], dict[str, torch.Tensor]]:
         """return observation and high resolution observation"""
@@ -293,7 +305,7 @@ class UR3eEnv:
 
     # ============= gym style api for compatibility with data collection ============= #
     def step(
-        self, action: torch.Tensor
+        self, action: torch.Tensor, joint_angles: bool = False
     ) -> tuple[dict[str, torch.Tensor], float, bool, bool, dict[str, torch.Tensor]]:
         # Immediately update with the action.
         # Note that `action` has been scaled to [-1, 1],
@@ -306,7 +318,11 @@ class UR3eEnv:
             assert action.min() >= -1, action.min()
 
             # self.controller.update(action.numpy())
-            self.apply_action(action.numpy())
+            if joint_angles:
+                if action.numpy().size >= 6:
+                    self.apply_joint_action(action.numpy())
+            else:
+                self.apply_action(action.numpy())
             self.time_step += 1
 
         rl_obs = self.observe()
@@ -342,12 +358,16 @@ def test():
 
     import time
 
-    # test an action
-    for _ in range(19):
-        action = torch.tensor([-0.03, 0.0, 0.00, 0.0, 0.00, 0.0, 1.0])
-        obs, reward, terminal, success, _ = env.step(action)
-        time.sleep(1)
+    # # == test an action - end effector deltas ==
+    # for _ in range(19):
+    #     action = torch.tensor([-0.03, 0.0, 0.00, 0.0, 0.00, 0.0, 1.0])
+    #     obs, reward, terminal, success, _ = env.step(action)
+    #     time.sleep(1)
 
+
+    # == test an action - joint angles ==
+    action = np.array([-1.57, -1.57, -1.57, -1.57, 1.57, 1.57, 0.0])
+    env.step(action)
 
     # action = np.array([0.0016, -0.0041, -0.0028, 0, 0, 0, 0.0497])    
     # env.apply_action(action)
