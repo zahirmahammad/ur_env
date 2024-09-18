@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-from gello.cameras.camera import CameraDriver
+# from gello.cameras.camera import CameraDriver
 
 
 def get_device_ids() -> List[str]:
@@ -20,7 +20,8 @@ def get_device_ids() -> List[str]:
     return device_ids
 
 
-class RealSenseCamera(CameraDriver):
+# class RealSenseCamera(CameraDriver):
+class RealSenseCamera():
     def __repr__(self) -> str:
         return f"RealSenseCamera(device_id={self._device_id})"
 

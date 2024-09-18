@@ -1,11 +1,13 @@
 Metadata-Version: 2.1
 Name: ur_env
 Version: 0.0.1
-Summary: Hardware Env for UR Robots
+Summary: Hardware for ur_env
 Home-page: 
-Author: Zahir Mahammad
-Author-email: zahirmd@umd.edu
+Author: 
+Author-email: 
 License: MIT
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
 Requires-Dist: numpy

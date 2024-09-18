@@ -26,7 +26,7 @@ _ROBOT_CAMERAS = {
         # "robot0_eye_in_hand": "241222076578",
         # "frontview": "838212072814",
         "corner2": "944622074035",
-        # "eye_in_hand": "032622072103",
+        "eye_in_hand": "032622072103",
     }
 }
 
@@ -55,9 +55,9 @@ class UR3eEnvConfig:
     rl_image_size: int = 224
     use_depth: int = 0
     # rl_camera: str = "robot0_eye_in_hand"
-    rl_camera: str = "corner2"
+    rl_camera: str = "corner2+eye_in_hand"
     randomize: int = 0
-    show_camera: int = 0
+    show_camera: int = 1
     drop_after_terminal: int = 1
     record: int = 0
     save_dir: str = ""
@@ -126,7 +126,8 @@ class UR3eEnv:
         #     self.resize_transform = utils.get_rescale_transform(cfg.rl_image_size)
 
         self.observation_shape: tuple[int, ...] = (3, cfg.rl_image_size, cfg.rl_image_size)
-        self.prop_shape: tuple[int] = (7,)
+        # self.prop_shape: tuple[int] = (7,)        # with gripper uncomment
+        self.prop_shape: tuple[int] = (6,)      
         args = Args()
     
         # cfg2 = pyrallis.parse(config_class=PolyMainConfig)  # type: ignore
@@ -355,8 +356,13 @@ def test():
     for k, v in obs.items():
         print(k, v.size())
 
+    print(obs.keys())
 
     import time
+
+    while True:
+        obs = env.observe()
+
 
     # # == test an action - end effector deltas ==
     # for _ in range(19):
@@ -366,8 +372,11 @@ def test():
 
 
     # == test an action - joint angles ==
-    action = np.array([-1.57, -1.57, -1.57, -1.57, 1.57, 1.57, 0.0])
-    env.step(action)
+    # action = np.array([-1.57, -1.57, -1.57, -1.57, 1.57, 1.57, 0.0])
+    # env.step(action)
+
+    
+
 
     # action = np.array([0.0016, -0.0041, -0.0028, 0, 0, 0, 0.0497])    
     # env.apply_action(action)

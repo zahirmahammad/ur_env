@@ -63,7 +63,7 @@ class URTDEControllerConfig:
 
     ## --------- Newly Added ----------- ##
     agent: str = "ur"
-    hostname: str = "10.104.59.112"
+    hostname: str = "10.104.192.228"
     # hostname: str = "192.168.77.243"
     robot_port: int = 50003  # for trajectory
     robot_ip: str = "192.168.77.21" 
@@ -98,7 +98,7 @@ class URTDEController:
             "CARTESIAN_IMPEDANCE",
         }
 
-        self.use_gripper = True
+        self.use_gripper = False
 
 
         if task == "lift":
@@ -175,8 +175,14 @@ class URTDEController:
             assert (
                 self.home_pose is not None
             ), "Home pose not assigned! Call 'set_home_pose(<joint_angles>)' to enable homing"
-            return self.move_to_joint_positions(
-                positions=self.home_pose, delta=False)
+
+            if self.use_gripper:
+                return self.move_to_joint_positions(positions=self.home_pose, delta=False)
+            elif self.use_gripper is False:
+                return self.move_to_joint_positions(positions=self.home_pose[:6], delta=False)
+            else:
+                print("Unknown Error occured")
+                return         
 
 
 
@@ -192,6 +198,11 @@ class URTDEController:
         """
         print("move_to_joint_positions")
         curr_joints = self._robot.get_joint_state()
+        
+        # Check if current joints and positions are same
+        assert len(list(positions)) == len(curr_joints), "positions and current joint angles are not same"
+
+
         # print("curr_joints", curr_joints)
         # print("len(list(positions))", len(list(positions)), "len(curr_joints)", len(curr_joints))
         if len(list(positions)) == len(curr_joints):
