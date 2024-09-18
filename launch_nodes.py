@@ -11,7 +11,7 @@ import numpy as np
 class Args:
     ###------ Hardware ------
     # hostname: str = "192.168.77.243"
-    hostname: str = "10.104.192.228"
+    hostname: str = "10.104.200.155"
     robot_ip: str = "192.168.77.21"
     robot_port: int = 50003  # for trajectory
     robot: str = "ur"
@@ -23,7 +23,7 @@ def launch_robot_server(args: Args):
         from robots.ur import URRobot
 
         # robot = URRobot(robot_ip=args.robot_ip)
-        robot = URRobot(robot_ip=args.robot_ip, control_rate_hz=100.0, no_gripper=True)
+        robot = URRobot(robot_ip=args.robot_ip, control_rate_hz=100.0, no_gripper=False)
 
     else:
         raise NotImplementedError(

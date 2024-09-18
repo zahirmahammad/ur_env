@@ -63,7 +63,7 @@ class URTDEControllerConfig:
 
     ## --------- Newly Added ----------- ##
     agent: str = "ur"
-    hostname: str = "10.104.192.228"
+    hostname: str = "10.104.200.155"
     # hostname: str = "192.168.77.243"
     robot_port: int = 50003  # for trajectory
     robot_ip: str = "192.168.77.21" 
@@ -98,7 +98,7 @@ class URTDEController:
             "CARTESIAN_IMPEDANCE",
         }
 
-        self.use_gripper = False
+        self.use_gripper = True
 
 
         if task == "lift":
@@ -133,6 +133,7 @@ class URTDEController:
         self.home_pose = self.ee_config.home
         print("Going to Home Position..")
         self.go_home(blocking=False)
+        time.sleep(2)   # Wait after reaching home position
         print(f"In home pose: joint_angles = {self.ee_config.home}")
 
         ee_pos = self._robot.get_ee_pose()
@@ -238,9 +239,11 @@ class URTDEController:
             rpy_delta = np.abs(curr_pose[3:6] - positions[3:6])
             # ----- Extra Safety Check for RPY ----- # 
             for angle in rpy_delta:
-                if abs(angle) > 0.75:
+                if abs(angle) > 0.3:
+                    print("-------------------------------------")
                     print(f"Angle: {angle}")
                     print(f"RPY input: {positions[3:6]}, RPY delta: {rpy_delta})")
+                    print("-------------------------------------")
                     raise ValueError("Angle difference is too large")
                 
             max_delta = (np.abs(curr_pose - np.array(positions))).max()
@@ -310,7 +313,11 @@ class URTDEController:
 
 
         if self.cfg.controller_type == "CARTESIAN_DELTA":
-            pos = self._robot.get_ee_pose()[:-1]
+            if self.use_gripper:
+                pos = self._robot.get_ee_pose()[:-1]
+            else:
+                pos = self._robot.get_ee_pose()
+            print(f"Current Pose: {pos}")
             ee_pos, ee_ori = np.split(pos, [3])
             delta_pos, delta_ori = np.split(robot_action, [3])
 
@@ -348,6 +355,7 @@ class URTDEController:
             #     raise ValueError("Yaw angle -- Out of bound")
 
 
+            # end_eff_pos[5] = 0.1
 
             print(f"Abs Pose: {end_eff_pos}")
 
@@ -356,6 +364,9 @@ class URTDEController:
                 self.update_gripper(gripper_action, blocking=False)
             # else:
                 # print("Action Skipped due to out of range")
+            print("-------------------------------------")
+            print(f"Action completed, Pose: {self._robot.get_ee_pose()}")
+            print("-------------------------------------")
         else:
             raise ValueError("Invalid Controller type provided")
 

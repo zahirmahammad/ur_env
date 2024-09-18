@@ -7,6 +7,8 @@ from robots.robot import Robot
 # import torch
 
 from env.ur3e_utils import Rate
+from scipy.spatial.transform import Rotation
+
 
 class URRobot(Robot):
     """A class representing a UR robot."""
@@ -73,6 +75,7 @@ class URRobot(Robot):
         else:
             pos = robot_joints
         return pos
+        
 
     def get_ee_pose(self) -> np.ndarray:
         """
@@ -80,6 +83,9 @@ class URRobot(Robot):
         """
 
         robot_end_eff_pos = self.r_inter.getActualTCPPose()
+        # Convert r_vec to rpy angles
+        # rpy = Rotation.from_rotvec(robot_end_eff_pos[3:]).as_euler("xyz")
+        # robot_end_eff_pos = np.append(robot_end_eff_pos[:3], rpy)
         if self._use_gripper:
             gripper_pos = self._get_gripper_pos()
             end_eff_pos = np.append(robot_end_eff_pos, gripper_pos)
@@ -137,8 +143,7 @@ class URRobot(Robot):
         print("Entered command_eef_pose")
         try:
             self.robot.servoL(eef_pos, velocity, acceleration, dt, lookahead_time, gain)
-            print(f"MoveL: {eef_pos}")
-            # self.robot.moveL(eef_pos_, a=0.25, v=0.25)
+            # self.robot.moveL(eef_pos, a=0.1, v=0.1)
             if self._use_gripper:
                 # gripper_pos = eef_pos[-1] * 255
                 self.gripper.move(gripper_qpos, 255, 10)

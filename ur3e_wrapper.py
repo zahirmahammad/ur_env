@@ -26,7 +26,7 @@ _ROBOT_CAMERAS = {
         # "robot0_eye_in_hand": "241222076578",
         # "frontview": "838212072814",
         "corner2": "944622074035",
-        "eye_in_hand": "032622072103",
+        # "eye_in_hand": "032622072103",
     }
 }
 
@@ -55,7 +55,7 @@ class UR3eEnvConfig:
     rl_image_size: int = 224
     use_depth: int = 0
     # rl_camera: str = "robot0_eye_in_hand"
-    rl_camera: str = "corner2+eye_in_hand"
+    rl_camera: str = "corner2"
     randomize: int = 0
     show_camera: int = 1
     drop_after_terminal: int = 1
@@ -126,14 +126,18 @@ class UR3eEnv:
         #     self.resize_transform = utils.get_rescale_transform(cfg.rl_image_size)
 
         self.observation_shape: tuple[int, ...] = (3, cfg.rl_image_size, cfg.rl_image_size)
-        # self.prop_shape: tuple[int] = (7,)        # with gripper uncomment
-        self.prop_shape: tuple[int] = (6,)      
+   
         args = Args()
     
         # cfg2 = pyrallis.parse(config_class=PolyMainConfig)  # type: ignore
         np.set_printoptions(precision=4, linewidth=100, suppress=True)
 
         self.controller = URTDEController(args.controller, cfg.task)
+
+        if self.controller.use_gripper:
+            self.prop_shape: tuple[int] = (7,)        # with gripper uncomment
+        else:      
+            self.prop_shape: tuple[int] = (6,)   
 
         self.action_dim = len(self.controller.action_space.low)
 
@@ -174,8 +178,8 @@ class UR3eEnv:
         props, in_good_range = self.controller.get_state()
         # props = self.controller.get_state()
         if not in_good_range:
-            print("Warning[UR3eEnv]: bad range, should have restarted")
-
+            # print("Warning[UR3eEnv]: bad range, should have restarted")
+            pass
         # # ----- Convert Euler to Quat ------ #
         # quat = eul_2_quat(props['robot0_eef_quat'])
         # props["robot0_eef_quat"] = quat
@@ -360,15 +364,15 @@ def test():
 
     import time
 
-    while True:
-        obs = env.observe()
+    # while True:
+        # obs = env.observe()
 
 
-    # # == test an action - end effector deltas ==
-    # for _ in range(19):
-    #     action = torch.tensor([-0.03, 0.0, 0.00, 0.0, 0.00, 0.0, 1.0])
-    #     obs, reward, terminal, success, _ = env.step(action)
-    #     time.sleep(1)
+    # == test an action - end effector deltas ==
+    for _ in range(20):
+        action = torch.tensor([0.00, 0.0, 0.00, 0.0, 0.01, 0.00, 0.0])
+        obs, reward, terminal, success, _ = env.step(action, joint_angles=False)
+        time.sleep(1)
 
 
     # == test an action - joint angles ==
