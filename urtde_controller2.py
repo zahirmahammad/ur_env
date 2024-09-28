@@ -3,12 +3,12 @@ import numpy as np
 # import torch
 from scipy.spatial.transform import Rotation
 
-from env.mocks import MockGripper, MockRobot
-from env.lift import LiftEEConfig
-from env.drawer import DrawerEEConfig
-from env.hang import HangEEConfig
-from env.towel import TowelEEConfig
-from env.two_stage import TwoStageEEConfig
+from hardware_env.mocks import MockGripper, MockRobot
+from hardware_env.lift import LiftEEConfig
+from hardware_env.drawer import DrawerEEConfig
+from hardware_env.hang import HangEEConfig
+from hardware_env.towel import TowelEEConfig
+from hardware_env.two_stage import TwoStageEEConfig
 
 # from robots.ur import URRobot
 from zmq_core.robot_node import ZMQClientRobot

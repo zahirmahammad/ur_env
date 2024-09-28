@@ -5,15 +5,15 @@ import torch
 import numpy as np
 import cv2
 from urtde_controller2 import URTDEController
-from env.cameras import RealSenseCamera
+from hardware_env.cameras import RealSenseCamera
 # from common_utils import ibrl_utils as utils
 
-from env.ur3e_utils import Rate
-from env.lift import Lift
-from env.drawer import Drawer
-from env.hang import Hang
-from env.towel import Towel
-from env.two_stage import TwoStage
+from hardware_env.ur3e_utils import Rate
+from hardware_env.lift import Lift
+from hardware_env.drawer import Drawer
+from hardware_env.hang import Hang
+from hardware_env.towel import Towel
+from hardware_env.two_stage import TwoStage
 
 from urtde_controller2 import Args
 import pyrallis

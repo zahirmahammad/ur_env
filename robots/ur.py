@@ -6,7 +6,7 @@ from robots.robot import Robot
 
 # import torch
 
-from env.ur3e_utils import Rate
+from hardware_env.ur3e_utils import Rate
 from scipy.spatial.transform import Rotation
 
 
