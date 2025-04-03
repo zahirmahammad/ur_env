@@ -191,8 +191,8 @@ class URTDEController:
         """Moves the robot to the specified joint positions.
 
         Args:
-            positions (torch.Tensor): The joint positions to move the robot to.
-            delta (bool, optional): Whether the positions are relative to the current positions. Defaults to False.
+            positions (torch.Tensor): The absolute joint positions to move the robot to.
+            delta (bool, optional): true if intermediate steps are required to reach goal pose, false if not.
 
         Returns:
             bool: True if the robot successfully moved to the specified positions, False otherwise.
@@ -226,8 +226,8 @@ class URTDEController:
         """Moves the robot to the specified joint positions.
 
         Args:
-            positions (torch.Tensor): The joint positions to move the robot to.
-            delta (bool, optional): Whether the positions are relative to the current positions. Defaults to False.
+            positions (torch.Tensor): The absolute eef positions to move the robot to.
+            delta (bool, optional): true if intermediate steps are required to reach goal pose, false if not.
 
         Returns:
             bool: True if the robot successfully moved to the specified positions, False otherwise.
